@@ -1,0 +1,13 @@
+{
+    "state": {
+        "desired": {
+            "target_temp": 160,
+            "alert_enabled": true
+        },
+        "reported": {
+            "probe_temp": 72.5,
+            "ambient_temp": 85.2,
+            "battery_level": 90
+        }
+    }
+}

@@ -1,0 +1,62 @@
+# BBQ Monitor Configuration
+
+[device]
+# Scan duration in seconds
+scan_duration = 5
+# Monitoring duration in seconds
+monitor_duration = 300
+# Reconnection attempts
+reconnect_attempts = 3
+
+[filters]
+# Only connect to devices with these name prefixes (empty = all BBQ devices)
+device_prefixes = ["cA00", "cA02", "Y0C"]
+# MAC address filter (empty = all)
+mac_filters = []
+# Minimum RSSI to connect (-100 to 0)
+min_rssi = -80
+
+[temperature]
+# Temperature unit: "fahrenheit" or "celsius"
+unit = "fahrenheit"
+# Alert thresholds in Fahrenheit
+max_internal_temp = 200.0
+max_ambient_temp = 1000.0
+warning_threshold_percent = 90.0
+
+[database]
+# SQLite database path
+path = "bbq_monitor.db"
+# Retention period in days (0 = keep forever)
+retention_days = 30
+# Batch size for inserts
+batch_size = 100
+
+[logging]
+# Log level: "trace", "debug", "info", "warn", "error"
+level = "info"
+# Log to file
+file_enabled = true
+file_path = "bbq_monitor.log"
+
+[web]
+# Web dashboard settings
+enabled = true
+host = "127.0.0.1"
+port = 8080
+
+[premium]
+# Premium license key
+# Get your key at: https://bbqmonitor.example.com/premium
+# Premium features: Cloud sync, unlimited history, cook profiles, advanced analytics
+license_key = ""
+
+[aws]
+# AWS IoT and DynamoDB settings
+# Set enabled=true and configure the values below to enable cloud sync
+enabled = false
+region = "us-east-1"
+thing_name = "bbq-monitor-001"
+table_name = "bbq-monitor-readings"
+# Sync interval in seconds (how often to sync with cloud)
+sync_interval_secs = 300

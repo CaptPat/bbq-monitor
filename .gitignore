@@ -1,0 +1,13 @@
+/target
+
+# AWS credentials - never commit these!
+*.csv
+*_credentials.csv
+*_accessKeys.csv
+.aws/
+*.pem
+*.key
+
+# Database and logs
+*.db
+*.log

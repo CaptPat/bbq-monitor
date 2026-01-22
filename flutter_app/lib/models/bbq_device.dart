@@ -3,7 +3,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 class BBQDevice {
   final String id;
   final String name;
-  final BluetoothDevice device;
+  final BluetoothDevice? device; // Nullable for Rust backend support
   double? currentTemp;
   double? targetTemp;
   double? ambientTemp;
@@ -14,7 +14,7 @@ class BBQDevice {
   BBQDevice({
     required this.id,
     required this.name,
-    required this.device,
+    this.device, // Optional for Rust backend
     this.currentTemp,
     this.targetTemp,
     this.ambientTemp,

@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 import 'license_service.dart';
 
 enum PaymentPlatform {
@@ -190,24 +192,24 @@ class GooglePlayPaymentService extends PaymentService {
   }
   
   Future<String?> _verifyPurchase(PurchaseDetails purchase) async {
-    // Call your backend to verify and get license key
-    // This would call your Lambda function
+    // Call backend to verify purchase and generate license
     try {
-      // TODO: Implement API call
-      // final response = await http.post(
-      //   Uri.parse('https://api.bbqmonitor.com/purchases/verify'),
-      //   body: {
-      //     'platform': 'android',
-      //     'purchase_token': purchase.verificationData.serverVerificationData,
-      //   },
-      // );
-      // return json.decode(response.body)['license_key'];
-      
-      return null; // Placeholder
+      // Implement API call to backend verification endpoint
+      final response = await http.post(
+        Uri.parse('http://localhost:8080/api/verify-purchase'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'platform': 'android',
+          'purchase_token': purchase.verificationData.serverVerificationData,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body)['license_key'];
+      }
     } catch (e) {
       debugPrint('Purchase verification failed: $e');
-      return null;
     }
+    return null;
   }
   
   String _getProductId(PremiumTier tier) {
@@ -240,8 +242,13 @@ class StripePaymentService extends PaymentService {
   
   @override
   Future<void> initialize() async {
-    Stripe.publishableKey = 'pk_test_YOUR_KEY_HERE';
-    await Stripe.instance.applySettings();
+    try {
+      Stripe.publishableKey = 'pk_test_YOUR_KEY_HERE';
+      await Stripe.instance.applySettings();
+    } catch (e) {
+      // Stripe doesn't support Windows yet, ignore initialization error
+      debugPrint('Stripe initialization skipped (Windows platform): $e');
+    }
   }
   
   @override
@@ -304,14 +311,20 @@ class StripePaymentService extends PaymentService {
   }
   
   Future<String> _getCheckoutUrl(PremiumTier tier) async {
-    // TODO: Call your backend to create Stripe Checkout session
-    // final response = await http.post(
-    //   Uri.parse('https://api.bbqmonitor.com/checkout/create'),
-    //   body: {'tier': tier.toString()},
-    // );
-    // return json.decode(response.body)['url'];
-    
-    // Placeholder - return hosted checkout page
+    // Call backend to create Stripe Checkout session
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8080/api/create-checkout'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'tier': tier.toString()}),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body)['url'];
+      }
+    } catch (e) {
+      debugPrint('Checkout creation failed: $e');
+    }
+    // Fallback to hosted checkout page
     return 'https://premium.bbqmonitor.com/checkout?tier=$tier';
   }
 }

@@ -4,15 +4,31 @@ import 'screens/home_screen.dart';
 import 'screens/premium_screen.dart';
 import 'services/license_service.dart';
 import 'services/payment_service.dart';
-import 'services/ble_service.dart';
+import 'services/rust_ble_service.dart';
+import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize services
-  await LicenseService.instance.initialize();
-  await PaymentService.instance.initialize();
+  try {
+    await LicenseService.instance.initialize();
+  } catch (e) {
+    debugPrint('License service init failed: $e');
+  }
+  
+  try {
+    await PaymentService.instance.initialize();
+  } catch (e) {
+    debugPrint('Payment service init failed: $e');
+  }
+  
+  try {
+    await RustBLEService.instance.initialize();
+  } catch (e) {
+    debugPrint('BLE service init failed: $e');
+  }
   
   runApp(const BbqMonitorApp());
 }
@@ -26,7 +42,8 @@ class BbqMonitorApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LicenseService.instance),
         ChangeNotifierProvider(create: (_) => PaymentService.instance),
-        ChangeNotifierProvider(create: (_) => BLEService()),
+        ChangeNotifierProvider(create: (_) => RustBLEService.instance),
+        ChangeNotifierProvider(create: (_) => SettingsService()),
       ],
       child: MaterialApp(
         title: 'BBQ Monitor',

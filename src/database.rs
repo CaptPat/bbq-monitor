@@ -277,10 +277,76 @@ impl Database {
         
         Ok(readings)
     }
+    
+    /// Get recent readings for a device
+    pub async fn get_device_readings(
+        &self,
+        device_address: &str,
+        limit: usize,
+    ) -> Result<Vec<ReadingRecord>> {
+        let query = if limit == 0 {
+            sqlx::query_as::<_, ReadingRecord>(
+                r#"
+                SELECT device_address, timestamp, sensor_index, temperature,
+                       ambient_temp, battery_level, signal_strength
+                FROM readings
+                WHERE device_address = ?
+                ORDER BY timestamp DESC
+                "#
+            )
+            .bind(device_address)
+        } else {
+            sqlx::query_as::<_, ReadingRecord>(
+                r#"
+                SELECT device_address, timestamp, sensor_index, temperature,
+                       ambient_temp, battery_level, signal_strength
+                FROM readings
+                WHERE device_address = ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+                "#
+            )
+            .bind(device_address)
+            .bind(limit as i64)
+        };
+        
+        let readings = query
+            .fetch_all(&self.pool)
+            .await
+            .context("Failed to fetch device readings")?;
+        
+        Ok(readings)
+    }
+    
+    /// Get readings within a time range
+    pub async fn get_readings_in_range(
+        &self,
+        device_address: &str,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Result<Vec<ReadingRecord>> {
+        let readings = sqlx::query_as::<_, ReadingRecord>(
+            r#"
+            SELECT device_address, timestamp, sensor_index, temperature,
+                   ambient_temp, battery_level, signal_strength
+            FROM readings
+            WHERE device_address = ? AND timestamp >= ? AND timestamp <= ?
+            ORDER BY timestamp ASC
+            "#
+        )
+        .bind(device_address)
+        .bind(start)
+        .bind(end)
+        .fetch_all(&self.pool)
+        .await
+        .context("Failed to fetch readings in range")?;
+        
+        Ok(readings)
+    }
 }
 
 /// Device record from database
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
 pub struct DeviceRecord {
     pub device_address: String,
     pub device_name: String,
@@ -292,7 +358,7 @@ pub struct DeviceRecord {
 }
 
 /// Reading record from database
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
 pub struct ReadingRecord {
     pub device_address: String,
     pub timestamp: DateTime<Utc>,

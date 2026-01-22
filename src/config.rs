@@ -74,8 +74,10 @@ pub struct AwsConfig {
 
 impl Config {
     pub fn load() -> Result<Self> {
-        let config_path = "config.toml";
-        
+        Self::load_from_path("config.toml")
+    }
+    
+    pub fn load_from_path(config_path: &str) -> Result<Self> {
         if !Path::new(config_path).exists() {
             return Ok(Self::default());
         }

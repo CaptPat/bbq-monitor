@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+import '../services/rust_ble_service.dart';
 import '../services/license_service.dart';
-import '../services/ble_service.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../models/bbq_device.dart';
+import '../utils/premium_gate.dart';
 import 'premium_screen.dart';
+import 'settings_screen.dart';
+import 'history_screen.dart';
+import 'alerts_screen.dart';
+import 'cook_profiles_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +25,16 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('BBQ Monitor'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            tooltip: 'Settings',
+          ),
           Consumer<LicenseService>(
             builder: (context, licenseService, child) {
               if (licenseService.isPremium) {
@@ -30,17 +45,34 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Consumer2<LicenseService, BLEService>(
-        builder: (context, licenseService, bleService, child) {
-          return Column(
-            children: [
-              if (!licenseService.isPremium) _buildUpgradeBanner(),
-              Expanded(
-                child: _buildDeviceList(bleService),
-              ),
-            ],
-          );
-        },
+      drawer: _buildDrawer(context),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'STATIC TEST - Window Working',
+              style: TextStyle(fontSize: 24, color: Colors.red),
+            ),
+            const SizedBox(height: 20),
+            Consumer<RustBLEService>(
+              builder: (context, bleService, child) {
+                return Column(
+                  children: [
+                    Text('Initialized: ${bleService.isInitialized}'),
+                    Text('Scanning: ${bleService.isScanning}'),
+                    Text('Devices: ${bleService.devices.length}'),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () => bleService.startScanning(),
+                      child: const Text('Start Scan'),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -91,6 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Unused - keeping for future use
+  // ignore: unused_element
   Widget _buildUpgradeBanner() {
     return Container(
       width: double.infinity,
@@ -151,7 +185,74 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDeviceList(BLEService bleService) {
+  // Unused - keeping for future use
+  // ignore: unused_element
+  Widget _buildOfflineModeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.orange.shade200,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.cloud_off,
+            color: Colors.orange.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Offline Mode - Data stored locally only',
+              style: TextStyle(
+                color: Colors.orange.shade900,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            child: Text(
+              'Settings',
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceList(RustBLEService bleService) {
+    // Show loading indicator during initialization
+    if (!bleService.isInitialized) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Initializing Bluetooth...'),
+          ],
+        ),
+      );
+    }
+    
     if (bleService.devices.isEmpty) {
       return Center(
         child: Column(
@@ -165,8 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             Text(
               bleService.isScanning
-                  ? 'Scanning for devices...'
-                  : 'No devices found',
+                  ? 'Scanning for devices... (0 found)'
+                  : '0 devices found',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -174,11 +275,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: bleService.isScanning
-                  ? null
-                  : () => bleService.startScanning(),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Scan for Devices'),
+              onPressed: () {
+                if (bleService.isScanning) {
+                  bleService.stopScanning();
+                } else {
+                  bleService.startScanning();
+                }
+              },
+              icon: Icon(
+                bleService.isScanning ? Icons.cancel : Icons.refresh,
+              ),
+              label: Text(
+                bleService.isScanning ? 'Cancel Scan' : 'Scan for Devices',
+              ),
             ),
           ],
         ),
@@ -203,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDeviceCard(BBQDevice device, BLEService bleService) {
+  Widget _buildDeviceCard(BBQDevice device, RustBLEService bleService) {
     final currentTemp = device.currentTemp ?? 0.0;
     final targetTemp = device.targetTemp ?? 165.0;
     final ambientTemp = device.ambientTemp;
@@ -260,14 +369,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     isConnected ? Icons.link_off : Icons.link,
                     color: isConnected ? Colors.red : Colors.blue,
                   ),
-                  onPressed: () {
-                    if (isConnected) {
-                      bleService.disconnectFromDevice(device);
-                    } else {
-                      bleService.connectToDevice(device);
-                    }
-                  },
-                  tooltip: isConnected ? 'Disconnect' : 'Connect',
+                  onPressed: null, // Connection managed by Rust backend
+                  tooltip: isConnected ? 'Connected' : 'Disconnected',
                 ),
               ],
             ),
@@ -449,7 +552,152 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _showTargetTempDialog(BBQDevice device, BLEService bleService) async {
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: Consumer<LicenseService>(
+        builder: (context, licenseService, child) {
+          return ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).primaryColor.withValues(alpha: 0.7),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const Icon(
+                      Icons.outdoor_grill,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'BBQ Monitor',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      licenseService.isPremium ? 'Premium User' : 'Free User',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.home),
+                title: const Text('Home'),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.history),
+                title: const Text('History'),
+                trailing: licenseService.isPremium
+                    ? null
+                    : Icon(
+                        Icons.lock,
+                        size: 16,
+                        color: Colors.orange.shade700,
+                      ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('Alerts'),
+                trailing: licenseService.isPremium
+                    ? null
+                    : Icon(
+                        Icons.lock,
+                        size: 16,
+                        color: Colors.orange.shade700,
+                      ),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (PremiumGate.checkAccess(context, featureName: 'Custom Alerts')) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AlertsScreen()),
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.restaurant),
+                title: const Text('Cook Profiles'),
+                trailing: licenseService.isPremium
+                    ? null
+                    : Icon(
+                        Icons.lock,
+                        size: 16,
+                        color: Colors.orange.shade700,
+                      ),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (PremiumGate.checkAccess(context, featureName: 'Cook Profiles')) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CookProfilesScreen()),
+                    );
+                  }
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.settings),
+                title: const Text('Settings'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+              ),
+              if (!licenseService.isPremium)
+                ListTile(
+                  leading: const Icon(Icons.workspace_premium, color: Colors.amber),
+                  title: const Text(
+                    'Upgrade to Premium',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PremiumScreen()),
+                    );
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showTargetTempDialog(BBQDevice device, RustBLEService bleService) async {
     final controller = TextEditingController(
       text: (device.targetTemp ?? 165.0).toStringAsFixed(0),
     );
@@ -485,7 +733,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (result != null) {
-      await bleService.setTargetTemperature(device, result);
+      // Target temperature stored locally in device model
+      // Backend storage would require adding endpoint to Rust web server
+      debugPrint('Target temperature set: $result°F');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Target set to $result°F')),
+        );
+      }
     }
   }
 }

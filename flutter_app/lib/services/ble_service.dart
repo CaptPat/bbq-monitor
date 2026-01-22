@@ -21,14 +21,18 @@ class BLEService extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    // Check if Bluetooth is available
-    if (await FlutterBluePlus.isSupported == false) {
-      debugPrint('Bluetooth not supported by this device');
-      return;
-    }
+    try {
+      // Check if Bluetooth is available
+      if (await FlutterBluePlus.isSupported == false) {
+        debugPrint('Bluetooth not supported by this device');
+        return;
+      }
 
-    // Start scanning automatically
-    startScanning();
+      // Start scanning automatically
+      startScanning();
+    } catch (e) {
+      debugPrint('BLE initialization failed (platform may not support Bluetooth): $e');
+    }
   }
 
   Future<void> startScanning() async {
@@ -55,7 +59,7 @@ class BLEService extends ChangeNotifier {
         if (_isScanning) stopScanning();
       });
     } catch (e) {
-      debugPrint('Error starting scan: $e');
+      debugPrint('BLE scanning failed: $e');
       _isScanning = false;
       notifyListeners();
     }
@@ -84,7 +88,7 @@ class BLEService extends ChangeNotifier {
     if (!isKnownDevice && deviceName.isEmpty) return;
 
     final existingIndex = _devices.indexWhere(
-      (d) => d.device.remoteId == result.device.remoteId
+      (d) => d.device?.remoteId == result.device.remoteId
     );
 
     if (existingIndex == -1) {
@@ -99,8 +103,10 @@ class BLEService extends ChangeNotifier {
   }
 
   Future<void> connectToDevice(BBQDevice device) async {
+    if (device.device == null) return; // Rust backend handles connection
+    
     try {
-      await device.device.connect(
+      await device.device!.connect(
         timeout: const Duration(seconds: 15),
         autoConnect: false,
       );
@@ -109,10 +115,11 @@ class BLEService extends ChangeNotifier {
       notifyListeners();
 
       // Discover services
-      List<BluetoothService> services = await device.device.discoverServices();
+      if (device.device != null) {
+        List<BluetoothService> services = await device.device!.discoverServices();
       
-      // Find temperature characteristic and subscribe to notifications
-      for (BluetoothService service in services) {
+        // Find temperature characteristic and subscribe to notifications
+        for (BluetoothService service in services) {
         for (BluetoothCharacteristic characteristic in service.characteristics) {
           if (characteristic.properties.notify) {
             await characteristic.setNotifyValue(true);
@@ -123,6 +130,7 @@ class BLEService extends ChangeNotifier {
           }
         }
       }
+      }
     } catch (e) {
       debugPrint('Error connecting to device: $e');
       device.isConnected = false;
@@ -131,13 +139,15 @@ class BLEService extends ChangeNotifier {
   }
 
   Future<void> disconnectFromDevice(BBQDevice device) async {
+    if (device.device == null) return; // Rust backend handles disconnection
+    
     try {
       // Cancel subscription
       await _deviceSubscriptions[device.id]?.cancel();
       _deviceSubscriptions.remove(device.id);
 
       // Disconnect
-      await device.device.disconnect();
+      await device.device!.disconnect();
       
       device.isConnected = false;
       notifyListeners();
@@ -183,8 +193,9 @@ class BLEService extends ChangeNotifier {
     device.targetTemp = targetTemp;
     notifyListeners();
     
-    // TODO: Send target temperature to device if supported
-    // Some devices allow setting target temps via BLE
+    // Note: Most BBQ thermometers are read-only and don't support writing target temps
+    // Some advanced devices allow setting target temps via BLE GATT characteristic
+    // Would require device capability detection and appropriate characteristic write
   }
 
   void removeDevice(BBQDevice device) {

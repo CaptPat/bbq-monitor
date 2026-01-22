@@ -69,13 +69,6 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-  
-  fonts:
-    - family: Roboto
-      fonts:
-        - asset: fonts/Roboto-Regular.ttf
-        - asset: fonts/Roboto-Bold.ttf
-          weight: 700
 
 flutter_rust_bridge:
   rust_input: ../src/lib.rs

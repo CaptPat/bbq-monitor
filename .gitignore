@@ -11,3 +11,6 @@
 # Database and logs
 *.db
 *.log
+
+# Invalid Windows filename
+nul

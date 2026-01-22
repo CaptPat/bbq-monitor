@@ -40,9 +40,9 @@ class BbqMonitorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LicenseService.instance),
-        ChangeNotifierProvider(create: (_) => PaymentService.instance),
-        ChangeNotifierProvider(create: (_) => RustBLEService.instance),
+        ChangeNotifierProvider.value(value: LicenseService.instance),
+        ChangeNotifierProvider.value(value: PaymentService.instance),
+        ChangeNotifierProvider.value(value: RustBLEService.instance),
         ChangeNotifierProvider(create: (_) => SettingsService()),
       ],
       child: MaterialApp(

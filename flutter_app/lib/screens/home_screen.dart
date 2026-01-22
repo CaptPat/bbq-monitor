@@ -46,33 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: _buildDrawer(context),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'STATIC TEST - Window Working',
-              style: TextStyle(fontSize: 24, color: Colors.red),
-            ),
-            const SizedBox(height: 20),
-            Consumer<RustBLEService>(
-              builder: (context, bleService, child) {
-                return Column(
-                  children: [
-                    Text('Initialized: ${bleService.isInitialized}'),
-                    Text('Scanning: ${bleService.isScanning}'),
-                    Text('Devices: ${bleService.devices.length}'),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () => bleService.startScanning(),
-                      child: const Text('Start Scan'),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
+      body: Consumer<RustBLEService>(
+        builder: (context, bleService, child) {
+          return _buildDeviceList(bleService);
+        },
       ),
     );
   }

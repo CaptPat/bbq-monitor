@@ -1,6 +1,7 @@
 # Bluetooth Protocol Documentation
 
-This document describes the Bluetooth Low Energy (BLE) protocols used by supported BBQ thermometer devices.
+This document describes the Bluetooth Low Energy (BLE) protocols used by
+supported BBQ thermometer devices.
 
 ## Table of Contents
 
@@ -52,10 +53,10 @@ For Combustion Predictive Probe:
 #### Data Structure
 
 ```text
-┌─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
-│   T1    │   T2    │   T3    │   T4    │   T5    │   T6    │   T7    │   T8    │
-│ 13 bits │ 13 bits │ 13 bits │ 13 bits │ 13 bits │ 13 bits │ 13 bits │ 13 bits │
-└─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+┌────────┬────────┬────────┬────────┬────────┬────────┬────────┬────────┐
+│   T1   │   T2   │   T3   │   T4   │   T5   │   T6   │   T7   │   T8   │
+│13 bits │13 bits │13 bits │13 bits │13 bits │13 bits │13 bits │13 bits │
+└────────┴────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 Total: 104 bits = 13 bytes
 ```
 
@@ -205,7 +206,8 @@ Tests are provided in `src/protocol.rs` to verify:
 
 ## License
 
-This documentation is provided for interoperability purposes. All trademarks and protocols are property of their respective owners:
+This documentation is provided for interoperability purposes. All trademarks
+and protocols are property of their respective owners:
 
 - MeatStick®, Combustion Inc.™
 - MEATER®, Apption Labs™

@@ -1,6 +1,7 @@
 # BBQ Monitor
 
-A Rust-based Bluetooth Low Energy (BLE) temperature monitoring system for BBQ probes, with support for MeatStick, MEATER, and Weber iGrill devices.
+A Rust-based Bluetooth Low Energy (BLE) temperature monitoring system for
+BBQ probes, with support for MeatStick, MEATER, and Weber iGrill devices.
 
 ## Features
 
